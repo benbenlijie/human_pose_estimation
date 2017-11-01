@@ -3,13 +3,17 @@ import threading
 from util.heatmap import *
 import tensorflow as tf
 import json
+import numpy as np
 
 
 class DataIterator(object):
-    def __init__(self, annotation_file, img_file_format, batch_size, data_shape, shuffle=False, seed=None, test=False):
+    def __init__(self, annotation_file, img_file_format, batch_size, data_shape, shuffle=False, seed=None, part=-1):
 
         with tf.gfile.GFile(annotation_file, "r") as f:
             self.annotations = json.load(f)
+        if part != -1:
+            choose = np.random.permutation(len(self.annotations))[:part]
+            self.annotations = list(np.array(self.annotations)[choose])
         self.img_file_format = img_file_format
         self.batch_size = batch_size
         self.batch_index = 0
@@ -50,8 +54,8 @@ class DataIterator(object):
                 img_file_path = self.img_file_format.format(annotation["image_id"])
                 if os.path.exists(img_file_path) is False:
                     continue
-                img, heatmap = generate_heatmap(img_file_path, annotation, new_size=[64, 64])
-                img, raf = generate_raf(img_file_path, annotation, new_size=[64, 64])
+                img, heatmap = generate_heatmap(img_file_path, annotation, new_size=[128, 128])
+                img, raf = generate_raf(img_file_path, annotation, new_size=[128, 128])
                 data_img = np.array(img.resize(self.data_shape, Image.ANTIALIAS))
                 batches_x.append(data_img[np.newaxis, ...])
 

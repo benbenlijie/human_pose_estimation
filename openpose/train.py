@@ -15,13 +15,15 @@ import argparse
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--data_dir", type=str, default="/data/data/")
+parser.add_argument("--data_dir", type=str, default="/data/data/train_part_small")
+parser.add_argument("--val_dir", type=str, default="/data/data/val_part_small")
 parser.add_argument("--batch_size", type=int, default=32)
-parser.add_argument("--learning_rate", "-lr", type=float, default=4e-3)
+parser.add_argument("--learning_rate", "-lr", type=float, default=4e-4)
 parser.add_argument("--max_iter", "-mi", type=int, default=20000)
 parser.add_argument("--weight_decay", "-wd", type=float, default=5e-4)
 parser.add_argument("--output_dir", type=str, default="/data/output/")
 parser.add_argument("--log_dir", type=str, default="/data/output/")
+parser.add_argument("--train_size", type=int, default=-1)
 
 FLAGS, _ = parser.parse_known_args()
 
@@ -31,7 +33,7 @@ momentum = 0.9
 weight_decay = FLAGS.weight_decay
 lr_policy =  "step"
 gamma = 0.333
-stepsize = 5000 #68053   // after each stepsize iterations update learning rate: lr=lr*gamma
+stepsize = 500 #68053   // after each stepsize iterations update learning rate: lr=lr*gamma
 max_iter = FLAGS.max_iter #200#000 # 600000
 data_shape = [512, 512]
 
@@ -74,11 +76,21 @@ else:
             print("load vgg19 layer: ", vgg_layer_name)
     last_epoch = 0
 
+print("data dir: ", FLAGS.data_dir)
+print("val dir: ", FLAGS.val_dir)
+
 # prepare generator:
 train_di = DataIterator(FLAGS.data_dir + "/keypoint_train_annotations_20170909.json",
                         FLAGS.data_dir + "/keypoint_train_images_20170902/{}.jpg",
                         batch_size=batch_size,
-                        data_shape=data_shape)
+                        data_shape=data_shape,
+                        shuffle=True,
+                        part=FLAGS.train_size)
+val_di = DataIterator(FLAGS.val_dir + "/keypoint_train_annotations_20170909.json",
+                        FLAGS.val_dir + "/keypoint_train_images_20170902/{}.jpg",
+                        batch_size=batch_size,
+                        data_shape=data_shape,
+                        shuffle=False)
 
 # setup lr multipliers for conv layers
 lr_mult = dict()
@@ -147,11 +159,11 @@ def step_decay(epoch):
 
 # configure callbacks
 lrate = LearningRateScheduler(step_decay)
-checkpoint = ModelCheckpoint(WEIGHTS_BEST, monitor='loss', verbose=0, save_best_only=False, save_weights_only=True, mode='min', period=2)
+checkpoint = ModelCheckpoint(WEIGHTS_BEST, monitor='val_loss', verbose=0, save_best_only=False, save_weights_only=True, mode='min', period=2)
 csv_logger = CSVLogger(TRAINING_LOG, append=True)
 tb = TensorBoard(log_dir=LOGS_DIR, histogram_freq=0, write_graph=True, write_images=False)
 
-callbacks_list = [lrate, checkpoint, csv_logger, tb]
+callbacks_list = [lrate, checkpoint, csv_logger]
 
 # sgd optimizer with lr multipliers
 multisgd = MultiSGD(lr=base_lr, momentum=momentum, decay=0.0, nesterov=False, lr_mult=lr_mult)
@@ -163,7 +175,9 @@ model.fit_generator(train_di,
                     steps_per_epoch=train_di.N // batch_size,
                     epochs=max_iter,
                     callbacks=callbacks_list,
-                    #use_multiprocessing=True,
+                    validation_data=val_di.next(),
+                    validation_steps=val_di.N // batch_size,
+                    # use_multiprocessing=True,
                     initial_epoch=last_epoch
                     )
 

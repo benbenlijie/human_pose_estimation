@@ -1,7 +1,7 @@
 from keras.models import Model
 from keras.layers.merge import Concatenate
 from keras.layers import Activation, Input, Lambda
-from keras.layers.convolutional import Conv2D
+from keras.layers.convolutional import Conv2D, Deconv2D
 from keras.layers.pooling import MaxPooling2D
 from keras.layers.merge import Multiply
 from keras.regularizers import l2
@@ -10,6 +10,10 @@ from keras.initializers import random_normal, constant
 
 def relu(x):
     return Activation('relu')(x)
+
+
+def csigmoid(x):
+    return x * Activation("sigmoid")(x)
 
 
 def conv(x, nf, ks, name, weight_decay):
@@ -21,6 +25,19 @@ def conv(x, nf, ks, name, weight_decay):
                bias_regularizer=bias_reg,
                kernel_initializer=random_normal(stddev=0.01),
                bias_initializer=constant(0.0))(x)
+    return x
+
+
+def deconv(x, nf, ks, strides, name, weight_decay):
+    kernel_reg = l2(weight_decay[0]) if weight_decay else None
+    bias_reg = l2(weight_decay[1]) if weight_decay else None
+
+    x = Deconv2D(nf, (ks, ks), strides=strides, padding='same',
+                 use_bias=True,
+                 name=name, kernel_regularizer=kernel_reg,
+                 bias_regularizer=bias_reg,
+                 kernel_initializer=random_normal(stddev=0.01),
+                 bias_initializer=constant(0.0))(x)
     return x
 
 
@@ -67,6 +84,8 @@ def vgg_block(x, weight_decay):
     x = conv(x, 128, 3, "conv4_4_CPM", (weight_decay, 0))
     x = relu(x)
 
+    x = deconv(x, 128, 3, 2, "deconv4_4", (weight_decay, 0))
+    x = relu(x)
     return x
 
 

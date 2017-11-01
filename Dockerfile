@@ -16,6 +16,8 @@ RUN pip --no-cache-dir install \
 
 WORKDIR POSE
 
+COPY model_res/vgg19_weights_tf_dim_ordering_tf_kernels_notop.h5 /root/.keras/models/vgg19_weights_tf_dim_ordering_tf_kernels_notop.h5
+
 COPY util util/
 
 COPY openpose openpose/
