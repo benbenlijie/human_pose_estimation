@@ -163,7 +163,7 @@ checkpoint = ModelCheckpoint(WEIGHTS_BEST, monitor='val_loss', verbose=0, save_b
 csv_logger = CSVLogger(TRAINING_LOG, append=True)
 tb = TensorBoard(log_dir=LOGS_DIR, histogram_freq=0, write_graph=True, write_images=False)
 
-callbacks_list = [lrate, checkpoint, csv_logger]
+callbacks_list = [lrate, checkpoint, csv_logger, tb]
 
 # sgd optimizer with lr multipliers
 multisgd = MultiSGD(lr=base_lr, momentum=momentum, decay=0.0, nesterov=False, lr_mult=lr_mult)
