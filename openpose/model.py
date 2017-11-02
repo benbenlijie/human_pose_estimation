@@ -1,6 +1,6 @@
 from keras.models import Model
-from keras.layers.merge import Concatenate
-from keras.layers import Activation, Input, Lambda
+from keras.layers.merge import Concatenate, Add
+from keras.layers import Activation, Input, Lambda, BatchNormalization
 from keras.layers.convolutional import Conv2D, Deconv2D
 from keras.layers.pooling import MaxPooling2D
 from keras.layers.merge import Multiply
@@ -85,40 +85,61 @@ def vgg_block(x, weight_decay):
     x = relu(x)
 
     x = deconv(x, 128, 3, 2, "deconv4_4", (weight_decay, 0))
-    x = relu(x)
+
     return x
 
 
 def stage1_block(x, num_p, branch, weight_decay):
     # Block 1
+    x = BatchNormalization()(x)
+    x = relu(x)
     x = conv(x, 128, 3, "Mconv1_stage1_L%d" % branch, (weight_decay, 0))
+    x = BatchNormalization()(x)
     x = relu(x)
     x = conv(x, 128, 3, "Mconv2_stage1_L%d" % branch, (weight_decay, 0))
+    x = BatchNormalization()(x)
     x = relu(x)
     x = conv(x, 128, 3, "Mconv3_stage1_L%d" % branch, (weight_decay, 0))
+    x = BatchNormalization()(x)
     x = relu(x)
     x = conv(x, 512, 1, "Mconv4_stage1_L%d" % branch, (weight_decay, 0))
+    x = BatchNormalization()(x)
     x = relu(x)
-    x = conv(x, num_p, 1, "Mconv5_stage1_L%d" % branch, (weight_decay, 0))
+    x = conv(x, num_p, 1, "Mconv_stage1_L%d" % branch, (weight_decay, 0))
 
     return x
 
 
 def stageT_block(x, num_p, stage, branch, weight_decay):
     # Block 1
+    skip = conv(x, 128, 1, "skip1_%d_L%d" % (stage, branch), (weight_decay, 0))
+    x = BatchNormalization()(x)
+    x = relu(x)
     x = conv(x, 128, 7, "Mconv1_stage%d_L%d" % (stage, branch), (weight_decay, 0))
+
+    x = BatchNormalization()(x)
     x = relu(x)
     x = conv(x, 128, 7, "Mconv2_stage%d_L%d" % (stage, branch), (weight_decay, 0))
+    x = Add()([x, skip])
+
+    skip = conv(x, 128, 1, "skip2_%d_L%d" % (stage, branch), (weight_decay, 0))
+    x = BatchNormalization()(x)
     x = relu(x)
     x = conv(x, 128, 7, "Mconv3_stage%d_L%d" % (stage, branch), (weight_decay, 0))
+    x = BatchNormalization()(x)
     x = relu(x)
+
     x = conv(x, 128, 7, "Mconv4_stage%d_L%d" % (stage, branch), (weight_decay, 0))
+    x = Add()([x, skip])
+
+    x = BatchNormalization()(x)
     x = relu(x)
     x = conv(x, 128, 7, "Mconv5_stage%d_L%d" % (stage, branch), (weight_decay, 0))
+    x = BatchNormalization()(x)
     x = relu(x)
-    x = conv(x, 128, 1, "Mconv6_stage%d_L%d" % (stage, branch), (weight_decay, 0))
-    x = relu(x)
-    x = conv(x, num_p, 1, "Mconv7_stage%d_L%d" % (stage, branch), (weight_decay, 0))
+#    x = conv(x, 128, 1, "Mconv6_stage%d_L%d" % (stage, branch), (weight_decay, 0))
+#    x = relu(x)
+    x = conv(x, num_p, 1, "Mconv_stage%d_L%d" % (stage, branch), (weight_decay, 0))
 
     return x
 

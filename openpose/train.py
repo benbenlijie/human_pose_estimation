@@ -25,7 +25,9 @@ parser.add_argument("--output_dir", type=str, default="/data/output/")
 parser.add_argument("--log_dir", type=str, default="/data/output/")
 parser.add_argument("--train_size", type=int, default=-1)
 
-FLAGS, _ = parser.parse_known_args()
+FLAGS, tmp = parser.parse_known_args()
+
+print(FLAGS, tmp)
 
 batch_size = FLAGS.batch_size
 base_lr = FLAGS.learning_rate
@@ -37,7 +39,7 @@ stepsize = 500 #68053   // after each stepsize iterations update learning rate: 
 max_iter = FLAGS.max_iter #200#000 # 600000
 data_shape = [512, 512]
 
-WEIGHTS_BEST = FLAGS.output_dir + "weights.best.h5"
+WEIGHTS_BEST = FLAGS.output_dir + "/weights.best.h5"
 TRAINING_LOG = "training.csv"
 LOGS_DIR = FLAGS.log_dir
 
@@ -119,33 +121,33 @@ for layer in model.layers:
 
 # configure loss functions
 losses = {}
-losses["Mconv5_stage1_L1"] = "mean_squared_error"
-losses["Mconv5_stage1_L2"] = "mean_squared_error"
-losses["Mconv7_stage2_L1"] = "mean_squared_error"
-losses["Mconv7_stage2_L2"] = "mean_squared_error"
-losses["Mconv7_stage3_L1"] = "mean_squared_error"
-losses["Mconv7_stage3_L2"] = "mean_squared_error"
-losses["Mconv7_stage4_L1"] = "mean_squared_error"
-losses["Mconv7_stage4_L2"] = "mean_squared_error"
-losses["Mconv7_stage5_L1"] = "mean_squared_error"
-losses["Mconv7_stage5_L2"] = "mean_squared_error"
-losses["Mconv7_stage6_L1"] = "mean_squared_error"
-losses["Mconv7_stage6_L2"] = "mean_squared_error"
+losses["Mconv_stage1_L1"] = "mean_squared_error"
+losses["Mconv_stage1_L2"] = "mean_squared_error"
+losses["Mconv_stage2_L1"] = "mean_squared_error"
+losses["Mconv_stage2_L2"] = "mean_squared_error"
+losses["Mconv_stage3_L1"] = "mean_squared_error"
+losses["Mconv_stage3_L2"] = "mean_squared_error"
+losses["Mconv_stage4_L1"] = "mean_squared_error"
+losses["Mconv_stage4_L2"] = "mean_squared_error"
+losses["Mconv_stage5_L1"] = "mean_squared_error"
+losses["Mconv_stage5_L2"] = "mean_squared_error"
+losses["Mconv_stage6_L1"] = "mean_squared_error"
+losses["Mconv_stage6_L2"] = "mean_squared_error"
 
 
 loss_weights = {}
-loss_weights["Mconv5_stage1_L1"] = 1
-loss_weights["Mconv5_stage1_L2"] = 1
-loss_weights["Mconv7_stage2_L1"] = 1
-loss_weights["Mconv7_stage2_L2"] = 1
-loss_weights["Mconv7_stage3_L1"] = 1
-loss_weights["Mconv7_stage3_L2"] = 1
-loss_weights["Mconv7_stage4_L1"] = 1
-loss_weights["Mconv7_stage4_L2"] = 1
-loss_weights["Mconv7_stage5_L1"] = 1
-loss_weights["Mconv7_stage5_L2"] = 1
-loss_weights["Mconv7_stage6_L1"] = 1
-loss_weights["Mconv7_stage6_L2"] = 1
+loss_weights["Mconv_stage1_L1"] = 1
+loss_weights["Mconv_stage1_L2"] = 1
+loss_weights["Mconv_stage2_L1"] = 1
+loss_weights["Mconv_stage2_L2"] = 1
+loss_weights["Mconv_stage3_L1"] = 1
+loss_weights["Mconv_stage3_L2"] = 1
+loss_weights["Mconv_stage4_L1"] = 1
+loss_weights["Mconv_stage4_L2"] = 1
+loss_weights["Mconv_stage5_L1"] = 1
+loss_weights["Mconv_stage5_L2"] = 1
+loss_weights["Mconv_stage6_L1"] = 1
+loss_weights["Mconv_stage6_L2"] = 1
 
 # learning rate schedule - equivalent of caffe lr_policy =  "step"
 iterations_per_epoch = train_di.N // batch_size
@@ -161,7 +163,7 @@ def step_decay(epoch):
 lrate = LearningRateScheduler(step_decay)
 checkpoint = ModelCheckpoint(WEIGHTS_BEST, monitor='val_loss', verbose=0, save_best_only=False, save_weights_only=True, mode='min', period=2)
 csv_logger = CSVLogger(TRAINING_LOG, append=True)
-tb = TensorBoard(log_dir=LOGS_DIR, histogram_freq=0, write_graph=True, write_images=False)
+tb = TensorBoard(log_dir=LOGS_DIR, histogram_freq=1, write_graph=True, write_images=False)
 
 callbacks_list = [lrate, checkpoint, csv_logger, tb]
 
@@ -177,7 +179,7 @@ model.fit_generator(train_di,
                     callbacks=callbacks_list,
                     validation_data=val_di.next(),
                     validation_steps=val_di.N // batch_size,
-                    # use_multiprocessing=True,
+                    use_multiprocessing=True,
                     initial_epoch=last_epoch
                     )
 
